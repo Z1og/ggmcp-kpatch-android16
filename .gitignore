@@ -1,0 +1,14 @@
+# 构建产物
+*.exe
+*.kpm
+*.o
+
+# 上游克隆
+kpsrc/
+gameguardian-mcp-server/
+
+# 临时文件
+*.log
+*.bak
+__pycache__/
+.DS_Store

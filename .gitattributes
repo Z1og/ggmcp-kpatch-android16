@@ -1,0 +1,7 @@
+# 脚本统一 LF，避免在 Android 上执行时报 \r 错误
+*.sh        text eol=lf
+*.py        text eol=lf
+*.c         text eol=lf
+*.h         text eol=lf
+*.lds       text eol=lf
+*.md        text eol=lf
