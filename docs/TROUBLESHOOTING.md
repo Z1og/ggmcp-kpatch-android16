@@ -1,4 +1,6 @@
-# 踩坑记录 · 19 个问题与解决方法
+# 踩坑记录 · 22 个问题与解决方法
+
+> ⭐ **如果这份踩坑记录帮你省下了几天时间，[点个 Star](https://github.com/Z1og/ggmcp-kpatch-android16)** —— 这类冷门内核适配全靠 Star 维持可见度。
 
 适配过程中遇到的全部问题，按「现象 → 排查 → 根因 → 解决」记录。
 
@@ -471,3 +473,13 @@ ld.lld -r -o kpgcmem.kpm kpgcmem.o
 | 20 | TLS 对齐报错 | `underaligned` | 用 PIE 不用 static |
 | 21 | KPM 链接失败 | `unknown argument: -r` | 用 `ld.lld` |
 | 22 | kallsyms 全 0 | 地址为 0 | 正常现象 |
+
+---
+
+<div align="center">
+
+**⭐ 帮到你了就给个 Star 吧 ⭐**
+
+[给 Z1og/ggmcp-kpatch-android16 点星](https://github.com/Z1og/ggmcp-kpatch-android16)
+
+</div>

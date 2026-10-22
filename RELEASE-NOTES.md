@@ -1,3 +1,12 @@
+<div align="center">
+
+**⭐ 如果这个发布帮到了你，别忘了 Star ⭐**
+
+[Z1og/ggmcp-kpatch-android16](https://github.com/Z1og/ggmcp-kpatch-android16)
+
+</div>
+
+---
 ## 实测通过的预编译产物
 
 设备：一加平板 3 Pro（OPD2513 / SM8850P）· Android 16 / ColorOS 16 · Kernel `6.12.58-android16-6` · SukiSU Ultra + KPatch-Next

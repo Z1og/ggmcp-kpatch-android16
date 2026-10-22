@@ -1,10 +1,26 @@
 # ggmcp × KPatch-Next · Android 16 / Kernel 6.12 GKI 内核读写适配
 
+<div align="center">
+
+[![Star](https://img.shields.io/github/stars/Z1og/ggmcp-kpatch-android16?style=social)](https://github.com/Z1og/ggmcp-kpatch-android16)
+[![Kernel](https://img.shields.io/badge/kernel-6.12-blue)](#兼容性)
+[![Android](https://img.shields.io/badge/android-16-green)](#兼容性)
+[![Arch](https://img.shields.io/badge/arch-arm64-orange)](#兼容性)
+
+**⭐ 觉得有用就点个 Star ⭐**
+
+</div>
+
 让 [gameguardian-mcp-server](https://github.com/giaoimgiao/gameguardian-mcp-server) 在 **Android 16 + Kernel 6.12 GKI** 的设备上真正跑通**内核级跨进程内存读写**。
 
 原项目依赖的社区 KPM 驱动（MemoryDriver / FastScan / KMA）在 6.12 上**全部失效**。本仓库提供一套自研 KPM 驱动 + ggmcp 后端实现，已在实机验证通过。
 
 > 实测设备：一加平板 3 Pro（OPD2513）· Snapdragon 8 Elite Gen 5 · Android 16 / ColorOS 16 · Kernel `6.12.58-android16-6` · SukiSU Ultra + KPatch-Next
+
+### ⭐ 如果这个项目帮到了你，点个 Star 让更多人找到它
+
+> 适配过程中**弄崩了 6 次设备**、翻了 22 个坑，才有了这个能跑的版本。
+> Star 是这个仓库继续维护下去的唯一动力 —— **[点这里 Star](https://github.com/Z1og/ggmcp-kpatch-android16)** ⭐
 
 ---
 
@@ -23,6 +39,9 @@
 [MATCH] 0x40800000  209618a700000000008000003c3f786d
 [MATCH] 0x60800000  0000000000000000b303000000000000
 ```
+
+> **觉得有用？** 上面这 5 行 `[MATCH]` 是实机逐字节比对的结果 ——
+> 如果这正是你找了两天答案的问题，**[给个 Star ⭐](https://github.com/Z1og/ggmcp-kpatch-android16)**，别让它沉下去。
 
 ---
 
@@ -92,7 +111,7 @@ adb forward tcp:18788 tcp:8788
 
 ## ⚠️ 踩坑记录
 
-**这是本仓库最有价值的部分。** 适配过程中遇到 19 个问题，其中 6 个直接导致设备重启。
+**这是本仓库最有价值的部分。** 适配过程中遇到 22 个问题，其中 6 个直接导致设备重启。
 
 最致命的三个：
 
@@ -106,6 +125,9 @@ adb forward tcp:18788 tcp:8788
    用户缓冲区必须 `mmap` + `memset` + `mlock` 预触，否则 `copy_to_user` 触发缺页不安全。
 
 完整清单见 **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**。
+
+> 💡 **如果在你自己设备上也踩到了这 22 个坑里的某一个**，把仓库收藏起来会省不少事 ——
+> **[点个 Star ⭐](https://github.com/Z1og/ggmcp-kpatch-android16)**，下次能直接找回来。
 
 ---
 
@@ -162,6 +184,25 @@ adb shell "su -c 'grep -E \" (access_process_vm|get_task_mm|mmput|find_get_task_
 
 ---
 
+## ⭐ Star History
+
+如果这篇 README 帮你省下了那 22 个坑的时间：
+
+<table>
+<tr><td>
+
+**给个 Star，让它出现在更多人的搜索结果里** ——
+对这类冷门内核适配项目，一个 Star 的实际影响比想象中大得多。
+
+</td><td>
+
+**[⭐ Star this repo](https://github.com/Z1og/ggmcp-kpatch-android16)**
+
+</td></tr>
+</table>
+
+---
+
 ## 许可
 
 - `kpm/` 下的 KPM 驱动源码：**GPL-2.0-or-later**（基于 KPatch-Next 头文件与框架）
@@ -181,3 +222,15 @@ adb shell "su -c 'grep -E \" (access_process_vm|get_task_mm|mmput|find_get_task_
 ## 免责声明
 
 仅供**技术研究与学习**。请勿用于联网游戏作弊或任何违反服务条款、法律法规的用途。使用者自行承担全部后果。
+
+---
+
+<div align="center">
+
+**⭐ 如果这个项目对你有帮助，别忘了点个 Star ⭐**
+
+[![Star](https://img.shields.io/badge/⭐_Star-给个星星吧-yellow?style=for-the-badge)](https://github.com/Z1og/ggmcp-kpatch-android16)
+
+*弄崩 6 次设备换来的适配方案，值得一颗星。*
+
+</div>

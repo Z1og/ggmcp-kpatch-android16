@@ -1,5 +1,7 @@
 # 部署步骤
 
+> ⭐ **部署成功了？[给个 Star](https://github.com/Z1og/ggmcp-kpatch-android16)**，让更多 6.12 用户少走弯路。
+
 从零到可用的完整流程。所有命令均已在 OPD2513（Android 16 / Kernel 6.12.58 GKI）实测。
 
 ## 前置条件
