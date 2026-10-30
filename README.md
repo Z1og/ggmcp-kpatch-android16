@@ -11,11 +11,13 @@
 
 </div>
 
-让 [gameguardian-mcp-server](https://github.com/giaoimgiao/gameguardian-mcp-server) 在 **Android 16 + Kernel 6.12 GKI** 的设备上真正跑通**内核级跨进程内存读写**。
+让 [gameguardian-mcp-server](https://github.com/giaoimgiao/gameguardian-mcp-server) 在 **Android 16/17 + Kernel 6.12 GKI** 的设备上真正跑通**内核级跨进程内存读写**。
 
 原项目依赖的社区 KPM 驱动（MemoryDriver / FastScan / KMA）在 6.12 上**全部失效**。本仓库提供一套自研 KPM 驱动 + ggmcp 后端实现，已在实机验证通过。
 
-> 实测设备：一加平板 3 Pro（OPD2513）· Snapdragon 8 Elite Gen 5 · Android 16 / ColorOS 16 · Kernel `6.12.58-android16-6` · SukiSU Ultra + KPatch-Next
+> 实测设备：一加平板 3 Pro（OPD2513）· Snapdragon 8 Elite Gen 5 · **Android 17 / ColorOS 17.0.0.105** · Kernel `6.12.69-android16-6` · SukiSU Ultra + KPatch-Next
+>
+> ✅ **已通过系统大版本升级验证**：ColorOS 16→17、内核 6.12.58→6.12.69 后，KPM 驱动**无需重新编译**直接可用。升级后如何重新注入 kpimg，见 [docs/OTA-UPGRADE.md](docs/OTA-UPGRADE.md)。
 
 ### ⭐ 如果这个项目帮到了你，点个 Star 让更多人找到它
 
@@ -138,7 +140,8 @@ adb forward tcp:18788 tcp:8788
 ├── README.md
 ├── docs/
 │   ├── DEPLOY.md          部署步骤（含交叉编译命令）
-│   ├── TROUBLESHOOTING.md 19 个问题与解决方法 ★
+│   ├── TROUBLESHOOTING.md 22 个问题与解决方法 ★
+│   ├── OTA-UPGRADE.md     系统升级后重新适配（槽位/内核变更）★
 │   └── KERNEL-NOTES.md    6.12 内核实测数据（mm_struct 偏移等）
 ├── kpm/
 │   ├── kpgcmem.c          KPM 驱动源码
@@ -149,7 +152,7 @@ adb forward tcp:18788 tcp:8788
 │   ├── kpm_backend.go     ggmcp 的 KPM 后端（替换原 MemoryDriver）
 │   └── apply-backend.py   自动应用后端补丁
 └── scripts/
-    ├── ggmcp-autostart.sh 开机自启（含 KPM 自动加载）
+    ├── ggmcp-autostart.sh 开机自启（等 KPatch 就绪 + KPM 重试加载）
     ├── verify_final.sh    12 项功能验证
     ├── verify_kpm.sh      KPM vs /proc 交叉对照
     └── verify_afterboot.sh 重启后验证
@@ -162,16 +165,30 @@ adb forward tcp:18788 tcp:8788
 | 项目 | 要求 |
 |---|---|
 | 架构 | arm64 |
-| 内核 | **6.12**（理论上 6.x 通用，但 `mm_struct` 偏移等仅在本版本实测） |
+| 内核 | **6.12**（6.12.58 与 6.12.69 均已实测，KPM 驱动跨小版本免重编译） |
+| Android | 16 / 17 实测通过 |
 | KPM 框架 | [KPatch-Next](https://github.com/KernelSU-Next/KPatch-Next)（`kpatch hello` 有回显） |
 | Root | KernelSU / KernelSU-Next / SukiSU（**不支持 APatch**，其自带 KPM 会冲突） |
 | 内核符号 | `access_process_vm`、`get_task_mm`、`mmput`、`find_get_task_by_vpid` 必须在 kallsyms 中 |
+
+### 实测矩阵
+
+| 内核版本 | Android | 系统 | 结果 |
+|---|---|---|---|
+| `6.12.58-android16-6-ab15213644` | 16 | ColorOS 16.0.10 | ✅ 12/12 |
+| `6.12.69-android16-6-ab15865446` | 17 | ColorOS 17.0.0.105 | ✅ 12/12 |
 
 移植到其他内核版本时，`kpgcmem.c` 无需改动（不依赖任何结构体偏移），但需要确认上述符号存在：
 
 ```bash
 adb shell "su -c 'grep -E \" (access_process_vm|get_task_mm|mmput|find_get_task_by_vpid)$\" /proc/kallsyms'"
 ```
+
+### 系统 OTA 升级后
+
+OTA 切换槽位会导致 boot 分区里的 kpimg 丢失，`kpatch hello` 变成无响应。**KPM 驱动本身不受影响**，只需重新给当前槽位的 boot 注入 kpimg。
+
+完整流程见 **[docs/OTA-UPGRADE.md](docs/OTA-UPGRADE.md)**。
 
 ---
 

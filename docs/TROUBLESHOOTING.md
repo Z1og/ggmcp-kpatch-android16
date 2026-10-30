@@ -447,6 +447,140 @@ ld.lld -r -o kpgcmem.kpm kpgcmem.o
 
 ---
 
+## 七、系统 OTA 升级后的问题
+
+> 完整流程见 [OTA-UPGRADE.md](OTA-UPGRADE.md)。这里只列问题本身。
+
+### 23. 升级后 `kpatch hello` 静默无响应
+
+**现象**：系统从 ColorOS 16.0.10 升到 17.0.0.105 后，root 正常（`su -c id` → `uid=0`），但 `kpatch hello` **没有任何输出**，退出码也不报错。
+
+**排查**：
+
+```bash
+adb shell getprop ro.boot.slot_suffix
+# _b                                            ← 升级前是 _a
+```
+
+对照两个槽位的 boot 分区：
+
+```bash
+sha256sum boot_a.img boot_b.img
+# e40794e8...  boot_a.img    ← 还是旧的 patched 版本
+# 617d3ff7...  boot_b.img    ← 新系统原厂内核，没有 kpimg
+```
+
+解包 `boot_b` 后 `KERNEL_SZ [42101248]`，且不含 d05 特征串。
+
+**根因**：**OTA 切换了活动槽位**。kpimg 是直接改 boot 分区内核二进制的，OTA 切到 `_b` 槽就等于换回了原厂内核，kpimg 丢失。
+
+**为什么 root 活下来了**：KernelSU 用 **LKM 模式**，`.ko` 在 `init_boot` 里，OTA 会跟着更新 `init_boot_b`，所以 root 不受影响。而 kpimg 改的是 `boot` 的 kernel，切槽即失效。
+
+**解决**：给当前槽位重新注入 kpimg。
+
+```bash
+# 1. 备份（必须！）
+dd if=/dev/block/by-name/boot_b of=/data/local/tmp/bk/boot_b.img bs=4096
+cp /data/local/tmp/bk/boot_b.img /sdcard/Download/boot_b_17.0.0.105.img
+
+# 2. 解包（kptools 不能直接吃整个 boot img）
+cd /data/local/tmp/w17
+cp /data/local/tmp/bk/boot_b.img boot.img
+/data/adb/modules/KPatch-Next/bin/magiskboot unpack boot.img
+
+# 3. 注入
+KP=/data/adb/modules/KPatch-Next/bin
+$KP/kptools -p -i kernel -k $KP/kpimg -o kernel.patched
+# 看到 [+] patch done: kernel.patched 即成功
+
+# 4. 重打包
+cp kernel.patched kernel
+$KP/magiskboot repack boot.img boot_new.img
+
+# 5. 先试启动
+adb reboot bootloader
+fastboot boot boot_new.img
+# 启动后验证 kpatch hello -> hello2026
+
+# 6. 确认无误再写入
+dd if=/data/local/tmp/w17/boot_new.img of=/dev/block/by-name/boot_b bs=4096
+```
+
+---
+
+### 24. `kptools -p` 报 `kernel image magic error`
+
+**现象**
+
+```
+$ kptools -p -i boot_b.img -k kpimg -o out.img
+kernel image magic error
+```
+
+**根因**：`kptools` 只认**裸 kernel 二进制**，不接受整个 Android boot image。
+
+**解决**：先用 `magiskboot unpack` 拿到 `kernel`，再对 `kernel` 打补丁。
+
+```bash
+magiskboot unpack boot.img      # 产出 kernel / ramdisk / ...
+kptools -p -i kernel -k kpimg -o kernel.patched
+```
+
+---
+
+### 25. 自启脚本误报 `ggmcp FAILED to start`
+
+**现象**：升级后自启日志写 `ggmcp FAILED to start`，但 `ps -A | grep ggmcp` 显示**进程活得好好的**。
+
+**根因**：`service.d` 执行阶段 `pgrep` 不可用（PATH 未就绪），返回非 0 被误判为失败。
+
+**解决**：三级回退检测
+
+```sh
+if command -v pgrep >/dev/null 2>&1 && pgrep -x ggmcp >/dev/null 2>&1; then
+    STARTED=1
+elif ps -A 2>/dev/null | grep -q '[g]gmcp'; then
+    STARTED=1
+fi
+```
+
+---
+
+### 26. KPM 加载早于 KPatch 就绪
+
+**现象**：升级后开机，KPM 经常加载失败，手动重新 load 又能成功。
+
+**根因**：`sys.boot_completed=1` 时 KPatch 的 supercall 可能还没就绪，此时 `kpatch kpm load` 会静默失败。
+
+**解决**：加载前轮询 `kpatch hello`（最多 60 秒）
+
+```sh
+i=0
+KPATCH_OK=0
+while [ $i -lt 30 ]; do
+    R=$("$KP/kpatch" hello 2>/dev/null)
+    case "$R" in *hello2026*) KPATCH_OK=1; break ;; esac
+    sleep 2; i=$((i + 1))
+done
+```
+
+---
+
+### 27. 升级后 KPM 需要重新编译吗
+
+**不需要。** 实测 `6.12.58` 编译的 `kpgcmem.kpm` 在 `6.12.69` 上直接可用。
+
+```
+[    5.936162] [+] KP I kpgc27: init apvm=ffffffe910f0fdac
+[    5.936163] [+] KP I kpgc27: ready
+```
+
+`access_process_vm` 地址从 `ffffffe19ec6f678` 变成 `ffffffe910f0fdac`，但驱动照常工作——因为它用 `kallsyms_lookup_name()` 动态解析，不硬编码地址、不依赖结构体偏移、不手工遍历页表。
+
+**这正是当初放弃手工页表遍历方案的回报。**
+
+---
+
 ## 问题速查表
 
 | # | 问题 | 症状关键词 | 解决 |
@@ -473,6 +607,11 @@ ld.lld -r -o kpgcmem.kpm kpgcmem.o
 | 20 | TLS 对齐报错 | `underaligned` | 用 PIE 不用 static |
 | 21 | KPM 链接失败 | `unknown argument: -r` | 用 `ld.lld` |
 | 22 | kallsyms 全 0 | 地址为 0 | 正常现象 |
+| 23 | **升级后 kpatch 无响应** | `hello` 无输出 | **槽位切换，重新注入 kpimg** |
+| 24 | kptools 报 magic error | `kernel image magic error` | 先 magiskboot unpack |
+| 25 | 自启误报失败 | FAILED to start 但进程在 | pgrep 不可用，改用 ps |
+| 26 | KPM 加载早于 KPatch | 开机加载失败 | 轮询 kpatch hello |
+| 27 | 升级后是否要重编译 | — | 不需要 |
 
 ---
 
